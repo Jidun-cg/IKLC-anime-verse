@@ -1,19 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../data/dummy_data.dart';
+import '../providers/app_state_provider.dart';
 import '../widgets/app_scaffold.dart';
 import '../widgets/favorite_anime_card.dart';
 
-class FavoriteScreen extends StatelessWidget {
+class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
+
+  @override
+  State<FavoriteScreen> createState() => _FavoriteScreenState();
+}
+
+class _FavoriteScreenState extends State<FavoriteScreen> {
+  late TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-
-    // Ambil 3 anime pertama dari DummyData untuk ditampilkan
-    final favoriteAnimeList = DummyData.animeList.take(3).toList();
 
     return AppScaffold(
       appBar: AppBar(
@@ -45,41 +62,58 @@ class FavoriteScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: "Anime Title",
-                  hintStyle: TextStyle(
-                    color: Colors.grey,
-                    fontSize: screenWidth * 0.04,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: Colors.grey,
-                    size: screenWidth * 0.06,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(screenWidth * 0.075),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(screenWidth * 0.075),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(screenWidth * 0.075),
-                    borderSide: BorderSide(color: Colors.white),
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFF0b395e),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.05,
-                    vertical: screenHeight * 0.015,
-                  ),
-                ),
-                style: TextStyle(
-                  fontSize: screenWidth * 0.04,
-                  color: Colors.white,
-                ),
+              child: Consumer<AppStateProvider>(
+                builder: (context, provider, child) {
+                  return TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      provider.setFavoriteSearchQuery(value);
+                    },
+                    decoration: InputDecoration(
+                      hintText: "Anime Title",
+                      hintStyle: TextStyle(
+                        color: Colors.grey,
+                        fontSize: screenWidth * 0.04,
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.grey,
+                        size: screenWidth * 0.06,
+                      ),
+                      suffixIcon: provider.favoriteSearchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.white),
+                              onPressed: () {
+                                _searchController.clear();
+                                provider.setFavoriteSearchQuery("");
+                              },
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(screenWidth * 0.075),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(screenWidth * 0.075),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(screenWidth * 0.075),
+                        borderSide: const BorderSide(color: Colors.white),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFF0b395e),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.05,
+                        vertical: screenHeight * 0.015,
+                      ),
+                    ),
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.04,
+                      color: Colors.white,
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -88,16 +122,33 @@ class FavoriteScreen extends StatelessWidget {
 
           // Favorite Anime List
           Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
-              itemCount: favoriteAnimeList.length,
-              itemBuilder: (context, index) {
-                final anime = favoriteAnimeList[index];
-                return FavoriteAnimeCard(
-                  title: anime.title,
-                  genre: anime.genre,
-                  rating: anime.rating,
-                  imagePath: anime.imagePath,
+            child: Consumer<AppStateProvider>(
+              builder: (context, favoriteProvider, child) {
+                final favorites = favoriteProvider.favorites;
+                final filteredFavorites = favoriteProvider.getFilteredFavorites();
+
+                if (favorites.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No Favorite Anime',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
+                  itemCount: filteredFavorites.length,
+                  itemBuilder: (context, index) {
+                    final anime = filteredFavorites[index];
+                    return FavoriteAnimeCard(
+                      id: anime.id,
+                      title: anime.title,
+                      genre: anime.genre,
+                      rating: anime.rating,
+                      imagePath: anime.imagePath,
+                    );
+                  },
                 );
               },
             ),
