@@ -44,10 +44,7 @@ class GenreList extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(screenWidth * 0.06),
               onTap: () {
-                // Memicu fungsi onGenreSelected jika ada saat tombol ditekan
-                if (onGenreSelected != null) {
-                  onGenreSelected!(genre);
-                }
+                onGenreSelected?.call(genre);
               },
               child: Container(
                 padding: EdgeInsets.symmetric(
